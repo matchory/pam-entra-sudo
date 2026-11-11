@@ -102,6 +102,7 @@ CI runs them on Ubuntu 20.04, 22.04, 24.04 and 26.04.
 ## Releases
 
 Pushing a tag `vX.Y.Z` runs `.github/workflows/release.yml`: it tests and
-builds `pam-entra-sudo_X.Y.Z~ubuntuNN.NN_amd64.deb` for each supported Ubuntu
-release and publishes them with `SHA256SUMS` as the GitHub release. Install
+builds `pam-entra-sudo_X.Y.Z.ubuntuNN.NN_amd64.deb` (package version
+`X.Y.Z~ubuntuNN.NN`) for each supported Ubuntu release and publishes them
+with `SHA256SUMS` as the GitHub release. Install
 them by pinned checksum.
