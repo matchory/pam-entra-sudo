@@ -1,0 +1,12 @@
+pam-entra-sudo
+Copyright 2026 Matchory GmbH
+
+This product is derived from pam_oauth2_device
+(https://github.com/ICS-MU/pam_oauth2_device), licensed under the Apache
+License, Version 2.0, Copyright 2019 Jaroslaw Surkont and the
+pam_oauth2_device contributors.
+
+Matchory GmbH modified it substantially in 2026: every source file under
+src/ and test/ was rewritten or replaced, the LDAP, userinfo and QR code
+support was removed, and network access was moved into a separate,
+unprivileged helper (src/fetch.cpp). The git history records each change.

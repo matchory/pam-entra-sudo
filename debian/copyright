@@ -1,0 +1,14 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: pam-entra-sudo
+Source: https://github.com/matchory/pam-entra-sudo
+Comment: Derived from https://github.com/ICS-MU/pam_oauth2_device; see NOTICE.
+
+Files: *
+Copyright: 2019 Jaroslaw Surkont <jaroslaw.surkont@unibas.ch>
+           2018-2026 The pam_oauth2_device contributors
+           2026 Matchory GmbH
+License: Apache-2.0
+
+License: Apache-2.0
+ On Debian systems, the full text of the Apache License 2.0 can be found in
+ /usr/share/common-licenses/Apache-2.0.

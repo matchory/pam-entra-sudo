@@ -1,0 +1,19 @@
+Source: pam-entra-sudo
+Section: admin
+Priority: optional
+Maintainer: Matchory GmbH <security@matchory.com>
+Build-Depends: debhelper-compat (= 12),
+               libpam0g-dev,
+               libcurl4-openssl-dev,
+               nlohmann-json3-dev
+Standards-Version: 4.5.0
+Homepage: https://github.com/matchory/pam-entra-sudo
+Rules-Requires-Root: no
+
+Package: pam-entra-sudo
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, ca-certificates
+Description: PAM module for sudo via a fresh Entra ID passkey sign-in
+ Authenticates sudo with the OAuth 2.0 device authorization grant against
+ Microsoft Entra ID, requiring a new sign-in with a required method (such as
+ a passkey) for every authentication.

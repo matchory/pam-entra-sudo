@@ -1,0 +1,111 @@
+name: Release
+
+# Pushing a tag vX.Y.Z builds one .deb per Ubuntu release the fleet runs and
+# publishes them, with SHA256SUMS, their .buildinfo files and a build
+# provenance attestation, as the GitHub release for that tag. Consumers check
+# the attestation before pinning a checksum:
+#   gh attestation verify <deb> --repo <owner>/pam-entra-sudo \
+#     --signer-workflow <owner>/pam-entra-sudo/.github/workflows/release.yml \
+#     --source-ref refs/tags/vX.Y.Z
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    strategy:
+      fail-fast: true
+      matrix:
+        release: ["20.04", "22.04", "24.04", "26.04"]
+    runs-on: ubuntu-24.04
+    container: ubuntu:${{ matrix.release }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install build dependencies
+        env:
+          DEBIAN_FRONTEND: noninteractive
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends build-essential \
+            debhelper dpkg-dev libpam0g-dev libcurl4-openssl-dev \
+            nlohmann-json3-dev libgtest-dev python3 binutils
+      - name: Unit tests
+        run: |
+          cd test
+          python3 mock_server.py &
+          make
+      - name: Write the changelog entry for this release
+        env:
+          TAG: ${{ github.ref_name }}
+          RELEASE: ${{ matrix.release }}
+          # The tagged commit's time, so that rebuilds are byte-identical.
+          COMMIT_TIME: ${{ github.event.head_commit.timestamp }}
+        run: |
+          # Only plain X.Y.Z: "1.2.3-rc1" would sort above "1.2.3" in dpkg.
+          echo "$TAG" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+$' ||
+            { echo "tag $TAG is not vX.Y.Z" >&2; exit 1; }
+          [ -n "$COMMIT_TIME" ] || { echo "no commit time for $TAG" >&2; exit 1; }
+          {
+            echo "pam-entra-sudo (${TAG#v}~ubuntu${RELEASE}) unstable; urgency=medium"
+            echo
+            echo "  * Release ${TAG}."
+            echo
+            echo " -- Matchory GmbH <security@matchory.com>  $(date -R -d "$COMMIT_TIME")"
+          } > debian/changelog
+      - name: Build and check package
+        run: |
+          dpkg-buildpackage -b -us -uc
+          test/check_package.sh ../pam-entra-sudo_*.deb
+          mkdir dist
+          mv ../pam-entra-sudo_*.deb ../pam-entra-sudo_*.buildinfo dist/
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: deb-${{ matrix.release }}
+          path: |
+            dist/*.deb
+            dist/*.buildinfo
+          if-no-files-found: error
+
+  publish:
+    needs: build
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+    steps:
+      # Releases come only from reviewed code: the tagged commit must be on
+      # main (identical to it or behind it).
+      - name: Check the tagged commit is on main
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          status=$(gh api "repos/$GITHUB_REPOSITORY/compare/main...$GITHUB_SHA" --jq .status)
+          case "$status" in
+            identical|behind) ;;
+            *) echo "$GITHUB_SHA is not on main ($status)" >&2; exit 1 ;;
+          esac
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: deb-*
+          merge-multiple: true
+          path: dist
+      - uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: dist/*.deb
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          cd dist
+          sha256sum *.deb > SHA256SUMS
+          cat SHA256SUMS
+          gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --verify-tag \
+            --title "$TAG" --notes "Packages for Ubuntu 20.04, 22.04, 24.04 and 26.04. Checksums in SHA256SUMS." \
+            *.deb *.buildinfo SHA256SUMS

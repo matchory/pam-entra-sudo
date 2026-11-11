@@ -1,0 +1,12 @@
+#!/usr/bin/make -f
+export DEB_BUILD_MAINT_OPTIONS = hardening=+all
+
+%:
+	dh $@
+
+override_dh_auto_install:
+	$(MAKE) install DESTDIR=$(CURDIR)/debian/pam-entra-sudo \
+		PAMDIR=/usr/lib/$(DEB_HOST_MULTIARCH)/security
+
+# The unit tests need mock_server.py running; CI runs them separately.
+override_dh_auto_test:

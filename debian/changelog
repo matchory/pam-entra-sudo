@@ -1,0 +1,5 @@
+pam-entra-sudo (0.0.0~dev) unstable; urgency=medium
+
+  * Local build. CI writes the real entry from the release tag.
+
+ -- Matchory GmbH <security@matchory.com>  Wed, 11 Nov 2026 12:00:00 +0000

@@ -1,0 +1,20 @@
+# Build output
+*.o
+*.so
+/pam-entra-sudo-fetch
+
+# Test binaries and temporary files
+/test/test_config
+/test/test_pam_entra_sudo
+/test/pam-entra-sudo-fetch
+/test/*.tmp.json
+/test/test_config.*.json
+
+# Package builds
+/debian/.debhelper/
+/debian/pam-entra-sudo/
+/debian/files
+/debian/*.substvars
+/debian/debhelper-build-stamp
+
+.DS_Store

@@ -1,0 +1,100 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    # clang-format output differs between versions; this runner pins 18.
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install linters
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang-format flawfinder
+          pipx install cpplint==2.0.2
+      - name: clang-format
+        run: clang-format --style Google --dry-run --Werror src/*.{cpp,hpp} test/*.cpp
+      - name: cpplint
+        run: cpplint src/* test/*.cpp
+      - name: flawfinder
+        run: flawfinder --error-level 1 src/*.{cpp,hpp} test/*.cpp
+
+  sanitizers:
+    # Unit tests under AddressSanitizer and UndefinedBehaviorSanitizer; any
+    # report fails the job.
+    runs-on: ubuntu-24.04
+    container: ubuntu:24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install build dependencies
+        env:
+          DEBIAN_FRONTEND: noninteractive
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends build-essential \
+            libpam0g-dev libcurl4-openssl-dev nlohmann-json3-dev \
+            libgtest-dev python3
+      - name: Unit tests with ASan and UBSan
+        run: |
+          cd test
+          python3 mock_server.py &
+          make CXXFLAGS='-g -O1 -fsanitize=address,undefined -fno-sanitize-recover=undefined -Wall -Wextra -Wno-unused-parameter -pthread -std=c++17'
+
+  test:
+    # Every Ubuntu release the fleet runs.
+    strategy:
+      fail-fast: false
+      matrix:
+        release: ["20.04", "22.04", "24.04", "26.04"]
+    runs-on: ubuntu-24.04
+    container: ubuntu:${{ matrix.release }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install build dependencies
+        env:
+          DEBIAN_FRONTEND: noninteractive
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends build-essential \
+            debhelper dpkg-dev libpam0g-dev libcurl4-openssl-dev \
+            nlohmann-json3-dev libgtest-dev python3
+      - name: Build
+        run: make
+      - name: Unit tests
+        run: |
+          cd test
+          python3 mock_server.py &
+          make
+      - name: Build and check package
+        run: |
+          apt-get install -y --no-install-recommends binutils
+          dpkg-buildpackage -b -us -uc
+          test/check_package.sh ../pam-entra-sudo_*.deb
+      # Real sudo with a hostile environment: the module must not create
+      # SSLKEYLOGFILE as root or follow the user's proxy.
+      - name: sudo integration (classic sudo, -E)
+        env:
+          DEBIAN_FRONTEND: noninteractive
+        run: |
+          apt-get install -y --no-install-recommends sudo bsdutils
+          test/sudo_integration.sh "$(readlink -f /usr/bin/sudo)" -E
+      - name: sudo integration (sudo-rs)
+        if: matrix.release == '26.04'
+        env:
+          DEBIAN_FRONTEND: noninteractive
+        run: |
+          apt-get install -y --no-install-recommends sudo-rs
+          test/sudo_integration.sh "$(command -v sudo-rs || echo /usr/lib/cargo/bin/sudo)"
