@@ -52,12 +52,15 @@ jobs:
           make CXXFLAGS='-g -O1 -fsanitize=address,undefined -fno-sanitize-recover=undefined -Wall -Wextra -Wno-unused-parameter -pthread -std=c++17'
 
   test:
-    # Every Ubuntu release the fleet runs.
+    # Every Ubuntu release and architecture the fleet runs. amd64 jobs keep the
+    # plain "test (NN.NN)" name the branch ruleset requires.
+    name: test (${{ matrix.release }}${{ matrix.arch == 'arm64' && ', arm64' || '' }})
     strategy:
       fail-fast: false
       matrix:
         release: ["20.04", "22.04", "24.04", "26.04"]
-    runs-on: ubuntu-24.04
+        arch: [amd64, arm64]
+    runs-on: ${{ matrix.arch == 'arm64' && 'ubuntu-24.04-arm' || 'ubuntu-24.04' }}
     container: ubuntu:${{ matrix.release }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
