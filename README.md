@@ -97,12 +97,12 @@ cd test && (./mock_server.py &) && make
 ```
 
 The tests build the module against `test/mock_server.py` instead of Entra.
-CI runs them on Ubuntu 20.04, 22.04, 24.04 and 26.04.
+CI runs them on Ubuntu 20.04, 22.04, 24.04 and 26.04, on amd64 and arm64.
 
 ## Releases
 
 Pushing a tag `vX.Y.Z` runs `.github/workflows/release.yml`: it tests and
-builds `pam-entra-sudo_X.Y.Z.ubuntuNN.NN_amd64.deb` (package version
-`X.Y.Z~ubuntuNN.NN`) for each supported Ubuntu release and publishes them
-with `SHA256SUMS` as the GitHub release. Install
+builds `pam-entra-sudo_X.Y.Z.ubuntuNN.NN_ARCH.deb` (package version
+`X.Y.Z~ubuntuNN.NN`) for each supported Ubuntu release on amd64 and arm64,
+and publishes them with `SHA256SUMS` as the GitHub release. Install
 them by pinned checksum.

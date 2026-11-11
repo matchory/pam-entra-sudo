@@ -3,7 +3,7 @@
 # (not a test one), the module exports only the PAM entry points and does not
 # link libcurl, nothing is setuid, and both binaries are fully hardened.
 #
-#   test/check_package.sh pam-entra-sudo_X_amd64.deb
+#   test/check_package.sh pam-entra-sudo_X_ARCH.deb
 set -euo pipefail
 
 DEB=$1
