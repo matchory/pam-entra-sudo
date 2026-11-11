@@ -62,7 +62,12 @@ jobs:
           dpkg-buildpackage -b -us -uc
           test/check_package.sh ../pam-entra-sudo_*.deb
           mkdir dist
-          mv ../pam-entra-sudo_*.deb ../pam-entra-sudo_*.buildinfo dist/
+          # GitHub turns "~" in asset names into "."; rename first so that
+          # SHA256SUMS lists the names the assets really have.
+          for f in ../pam-entra-sudo_*.deb ../pam-entra-sudo_*.buildinfo; do
+            name=$(basename "$f")
+            mv "$f" "dist/$(echo "$name" | tr '~' '.')"
+          done
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: deb-${{ matrix.release }}
